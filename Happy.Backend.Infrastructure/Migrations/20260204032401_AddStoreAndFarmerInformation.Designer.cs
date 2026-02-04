@@ -3,6 +3,7 @@ using System;
 using Happy.Backend.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Happy.Backend.Infrastructure.Migrations
 {
     [DbContext(typeof(HappyDbContext))]
-    partial class HappyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260204032401_AddStoreAndFarmerInformation")]
+    partial class AddStoreAndFarmerInformation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -70,17 +73,12 @@ namespace Happy.Backend.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AppCredentialId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AppCredentialId");
 
                     b.ToTable("farmer_information", (string)null);
                 });
@@ -93,9 +91,6 @@ namespace Happy.Backend.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AppCredentialId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("StoreName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -107,8 +102,6 @@ namespace Happy.Backend.Infrastructure.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AppCredentialId");
 
                     b.ToTable("store_information", (string)null);
                 });
@@ -169,28 +162,6 @@ namespace Happy.Backend.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("sync_raw_store", (string)null);
-                });
-
-            modelBuilder.Entity("Happy.Backend.Domain.Entities.FarmerInformation", b =>
-                {
-                    b.HasOne("Happy.Backend.Domain.Entities.AppCredential", "AppCredential")
-                        .WithMany()
-                        .HasForeignKey("AppCredentialId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AppCredential");
-                });
-
-            modelBuilder.Entity("Happy.Backend.Domain.Entities.StoreInformation", b =>
-                {
-                    b.HasOne("Happy.Backend.Domain.Entities.AppCredential", "AppCredential")
-                        .WithMany()
-                        .HasForeignKey("AppCredentialId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AppCredential");
                 });
 #pragma warning restore 612, 618
         }

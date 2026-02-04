@@ -23,6 +23,7 @@ builder.Services.AddDbContext<HappyDbContext>(options =>
 
 builder.Services.AddScoped<ISyncRawRepository, SyncRawRepository>();
 builder.Services.AddScoped<IAppCredentialRepository, AppCredentialRepository>();
+builder.Services.AddScoped<IStoreFarmerInformationRepository, StoreFarmerInformationRepository>();
 
 var app = builder.Build();
 

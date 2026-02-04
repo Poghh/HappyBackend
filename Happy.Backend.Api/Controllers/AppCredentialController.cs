@@ -16,18 +16,10 @@ public class AppCredentialController : ControllerBase
         _appCredentialRepository = appCredentialRepository;
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateAppCredentialRequest request)
+    [HttpGet("exists")]
+    public async Task<IActionResult> Exists([FromQuery] string phone, [FromQuery] string appName)
     {
-        if (string.IsNullOrWhiteSpace(request.AppName))
-        {
-            return BadRequest(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "AppName is required"));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Phone))
+        if (string.IsNullOrWhiteSpace(phone))
         {
             return BadRequest(new CommonResponseModel<object>(
                 CommonResponseConstants.StatusBadRequest,
@@ -35,31 +27,43 @@ public class AppCredentialController : ControllerBase
                 CommonMessageConstants.PhoneRequired));
         }
 
-        var appCredential = await _appCredentialRepository.CreateAsync(
-            request.AppName.Trim(),
-            request.Phone.Trim());
-
-        var response = new CreateAppCredentialResponse
+        if (string.IsNullOrWhiteSpace(appName))
         {
-            Id = appCredential.Id,
-            AppSecret = appCredential.AppSecret,
-            AppName = appCredential.AppName,
-            Phone = appCredential.Phone,
-            CreatedAt = appCredential.CreatedAt
+            return BadRequest(new CommonResponseModel<object>(
+                CommonResponseConstants.StatusBadRequest,
+                null,
+                "AppName is required"));
+        }
+
+        var exists = await _appCredentialRepository.ExistsByPhoneAndAppNameAsync(
+            phone.Trim(),
+            appName.Trim());
+
+        var response = new AppCredentialExistsResponse
+        {
+            Exists = exists
         };
 
-        return Ok(new CommonResponseModel<CreateAppCredentialResponse>(
+        return Ok(new CommonResponseModel<AppCredentialExistsResponse>(
             CommonResponseConstants.StatusSuccess,
             response,
             "ok"));
     }
 
-    [HttpPut("{id}/deactivate")]
-    public async Task<IActionResult> Deactivate(int id)
+    [HttpGet("secret")]
+    public async Task<IActionResult> GetSecret([FromQuery] string phone)
     {
-        var result = await _appCredentialRepository.DeactivateAsync(id);
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return BadRequest(new CommonResponseModel<object>(
+                CommonResponseConstants.StatusBadRequest,
+                null,
+                CommonMessageConstants.PhoneRequired));
+        }
 
-        if (!result)
+        var appCredential = await _appCredentialRepository.GetLatestByPhoneAsync(phone.Trim());
+
+        if (appCredential == null)
         {
             return NotFound(new CommonResponseModel<object>(
                 CommonResponseConstants.StatusNotFound,
@@ -67,24 +71,24 @@ public class AppCredentialController : ControllerBase
                 "AppCredential not found"));
         }
 
-        return Ok(new CommonResponseModel<object>(
+        var response = new AppCredentialSecretResponse
+        {
+            AppSecret = appCredential.AppSecret
+        };
+
+        return Ok(new CommonResponseModel<AppCredentialSecretResponse>(
             CommonResponseConstants.StatusSuccess,
-            null,
-            "AppCredential deactivated"));
+            response,
+            "ok"));
     }
 }
 
-public class CreateAppCredentialRequest
+public class AppCredentialExistsResponse
 {
-    public string AppName { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
+    public bool Exists { get; set; }
 }
 
-public class CreateAppCredentialResponse
+public class AppCredentialSecretResponse
 {
-    public int Id { get; set; }
     public string AppSecret { get; set; } = string.Empty;
-    public string AppName { get; set; } = string.Empty;
-    public string Phone { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; }
 }

@@ -21,6 +21,12 @@ public class AppCredentialRepository : IAppCredentialRepository
             .FirstOrDefaultAsync(x => x.AppSecret == appSecret && x.Phone == phone && x.IsActive);
     }
 
+    public async Task<AppCredential?> GetByPhoneAndAppNameAsync(string phone, string appName)
+    {
+        return await _context.AppCredentials
+            .FirstOrDefaultAsync(x => x.Phone == phone && x.AppName == appName);
+    }
+
     public async Task<AppCredential> CreateAsync(string appName, string phone)
     {
         var appCredential = new AppCredential
@@ -37,6 +43,19 @@ public class AppCredentialRepository : IAppCredentialRepository
         await _context.SaveChangesAsync();
 
         return appCredential;
+    }
+
+    public async Task<bool> ExistsByPhoneAndAppNameAsync(string phone, string appName)
+    {
+        return await _context.AppCredentials.AnyAsync(x => x.Phone == phone && x.AppName == appName);
+    }
+
+    public async Task<AppCredential?> GetLatestByPhoneAsync(string phone)
+    {
+        return await _context.AppCredentials
+            .Where(x => x.Phone == phone)
+            .OrderByDescending(x => x.CreatedAt)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<bool> DeactivateAsync(int id)

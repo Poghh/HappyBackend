@@ -71,9 +71,46 @@ public class HappyDbContext : DbContext
             entity.HasIndex(e => e.AppSecret)
                 .IsUnique();
         });
+
+        modelBuilder.Entity<StoreInformation>(entity =>
+        {
+            entity.ToTable("store_information");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AppCredentialId)
+                .IsRequired();
+            entity.Property(e => e.StoreName)
+                .HasMaxLength(200)
+                .IsRequired();
+            entity.Property(e => e.UserName)
+                .HasMaxLength(100)
+                .IsRequired();
+            entity.HasOne(e => e.AppCredential)
+                .WithMany()
+                .HasForeignKey(e => e.AppCredentialId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.AppCredentialId);
+        });
+
+        modelBuilder.Entity<FarmerInformation>(entity =>
+        {
+            entity.ToTable("farmer_information");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AppCredentialId)
+                .IsRequired();
+            entity.Property(e => e.UserName)
+                .HasMaxLength(100)
+                .IsRequired();
+            entity.HasOne(e => e.AppCredential)
+                .WithMany()
+                .HasForeignKey(e => e.AppCredentialId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.AppCredentialId);
+        });
     }
 
     public DbSet<SyncRawStore> SyncRawStores => Set<SyncRawStore>();
     public DbSet<SyncRawFarmer> SyncRawFarmers => Set<SyncRawFarmer>();
     public DbSet<AppCredential> AppCredentials => Set<AppCredential>();
+    public DbSet<StoreInformation> StoreInformation => Set<StoreInformation>();
+    public DbSet<FarmerInformation> FarmerInformation => Set<FarmerInformation>();
 }
