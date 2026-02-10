@@ -8,22 +8,22 @@ namespace Happy.Backend.Infrastructure.Repositories;
 
 public class AppCredentialRepository : IAppCredentialRepository
 {
-    private readonly HappyDbContext _context;
+    private readonly HappyDbContext _db;
 
-    public AppCredentialRepository(HappyDbContext context)
+    public AppCredentialRepository(HappyDbContext db)
     {
-        _context = context;
+        _db = db;
     }
 
     public async Task<AppCredential?> ValidateAsync(string appSecret, string phone)
     {
-        return await _context.AppCredentials
+        return await _db.AppCredentials
             .FirstOrDefaultAsync(x => x.AppSecret == appSecret && x.Phone == phone && x.IsActive);
     }
 
     public async Task<AppCredential?> GetByPhoneAndAppNameAsync(string phone, string appName)
     {
-        return await _context.AppCredentials
+        return await _db.AppCredentials
             .FirstOrDefaultAsync(x => x.Phone == phone && x.AppName == appName);
     }
 
@@ -39,20 +39,20 @@ public class AppCredentialRepository : IAppCredentialRepository
             UpdatedAt = DateTime.UtcNow
         };
 
-        _context.AppCredentials.Add(appCredential);
-        await _context.SaveChangesAsync();
+        _db.AppCredentials.Add(appCredential);
+        await _db.SaveChangesAsync();
 
         return appCredential;
     }
 
     public async Task<bool> ExistsByPhoneAndAppNameAsync(string phone, string appName)
     {
-        return await _context.AppCredentials.AnyAsync(x => x.Phone == phone && x.AppName == appName);
+        return await _db.AppCredentials.AnyAsync(x => x.Phone == phone && x.AppName == appName);
     }
 
     public async Task<AppCredential?> GetLatestByPhoneAsync(string phone)
     {
-        return await _context.AppCredentials
+        return await _db.AppCredentials
             .Where(x => x.Phone == phone)
             .OrderByDescending(x => x.CreatedAt)
             .FirstOrDefaultAsync();
@@ -60,13 +60,13 @@ public class AppCredentialRepository : IAppCredentialRepository
 
     public async Task<bool> DeactivateAsync(int id)
     {
-        var appCredential = await _context.AppCredentials.FindAsync(id);
+        var appCredential = await _db.AppCredentials.FindAsync(id);
         if (appCredential == null)
             return false;
 
         appCredential.IsActive = false;
         appCredential.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await _db.SaveChangesAsync();
 
         return true;
     }

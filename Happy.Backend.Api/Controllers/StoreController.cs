@@ -1,9 +1,9 @@
-using System.Text.Json;
 using Happy.Backend.Api.Constants;
 using Happy.Backend.Api.Filters;
 using Happy.Backend.Api.Models;
-using Happy.Backend.Application.Interfaces;
-using Happy.Backend.Domain.Entities;
+using Happy.Backend.Api.Models.Requests;
+using Happy.Backend.Api.Models.Responses;
+using Happy.Backend.Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Happy.Backend.Api.Controllers;
@@ -13,45 +13,21 @@ namespace Happy.Backend.Api.Controllers;
 [Tags("Store")]
 public class StoreController : ControllerBase
 {
-    private readonly IAppCredentialRepository _appCredentialRepository;
-    private readonly IStoreFarmerInformationRepository _informationRepository;
-    private readonly ISyncRawRepository _syncRawRepository;
+    private readonly IStoreService _storeService;
 
-    public StoreController(
-        IAppCredentialRepository appCredentialRepository,
-        IStoreFarmerInformationRepository informationRepository,
-        ISyncRawRepository syncRawRepository)
+    public StoreController(IStoreService storeService)
     {
-        _appCredentialRepository = appCredentialRepository;
-        _informationRepository = informationRepository;
-        _syncRawRepository = syncRawRepository;
+        _storeService = storeService;
     }
 
     [HttpPost("create-information")]
     public async Task<IActionResult> CreateInformation([FromBody] StoreInformationRequest request)
     {
-        var validationError = ValidateStoreInformationRequest(request);
-        if (validationError != null) return validationError;
-
-        var appCredential = await _appCredentialRepository.GetByPhoneAndAppNameAsync(
+        var entity = await _storeService.CreateAsync(
             request.Phone.Trim(),
-            request.AppName.Trim());
-
-        if (appCredential == null)
-        {
-            appCredential = await _appCredentialRepository.CreateAsync(
-                request.AppName.Trim(),
-                request.Phone.Trim());
-        }
-
-        var entity = new StoreInformation
-        {
-            AppCredentialId = appCredential.Id,
-            StoreName = request.StoreName.Trim(),
-            UserName = request.UserName.Trim()
-        };
-
-        await _informationRepository.AddStoreAsync(entity);
+            request.AppName.Trim(),
+            request.UserName.Trim(),
+            request.StoreName.Trim());
 
         var response = new StoreInformationResponse
         {
@@ -68,124 +44,55 @@ public class StoreController : ControllerBase
     }
 
     [JwtAuthorize]
+    [HttpGet("get-information")]
+    public async Task<IActionResult> GetInformation()
+    {
+        var appName = HttpContext.Items["AppName"] as string ?? string.Empty;
+        var phone = HttpContext.Items["Phone"] as string ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(appName) || string.IsNullOrWhiteSpace(phone))
+        {
+            return Unauthorized(new CommonResponseModel<object>(
+                CommonResponseConstants.StatusUnauthorized,
+                null,
+                CommonMessageConstants.InvalidOrExpiredToken));
+        }
+
+        var info = await _storeService.GetByCredentialsAsync(phone, appName);
+        if (info == null)
+        {
+            return NotFound(new CommonResponseModel<object>(
+                CommonResponseConstants.StatusNotFound,
+                null,
+                "Store information not found"));
+        }
+
+        var response = new StoreInformationResponse
+        {
+            Id = info.Id,
+            AppCredentialId = info.AppCredentialId,
+            StoreName = info.StoreName,
+            UserName = info.UserName
+        };
+
+        return Ok(new CommonResponseModel<StoreInformationResponse>(
+            CommonResponseConstants.StatusSuccess,
+            response,
+            "ok"));
+    }
+
+    [JwtAuthorize]
     [HttpPost("sync")]
     public async Task<IActionResult> Sync([FromBody] SyncRequest request)
     {
-        var validationError = ValidateSyncRequest(request);
-        if (validationError != null) return validationError;
+        await _storeService.SyncAsync(
+            request.Phone.Trim(),
+            request.SyncTime,
+            request.SyncData);
 
-        var now = DateTime.UtcNow;
-        var syncTime = request.SyncTime.Kind == DateTimeKind.Unspecified
-            ? DateTime.SpecifyKind(request.SyncTime, DateTimeKind.Utc)
-            : request.SyncTime.ToUniversalTime();
-        var entity = new SyncRawStore
-        {
-            Phone = request.Phone.Trim(),
-            SyncTime = syncTime,
-            SyncData = JsonSerializer.Serialize(request.SyncData),
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
-
-        await _syncRawRepository.AddStoreAsync(entity);
-        return Ok(new CommonResponseModel<object>(CommonResponseConstants.StatusSuccess, null, "ok"));
+        return Ok(new CommonResponseModel<object>(
+            CommonResponseConstants.StatusSuccess,
+            null,
+            "ok"));
     }
-
-    private static IActionResult? ValidateStoreInformationRequest(StoreInformationRequest request)
-    {
-        if (request == null)
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "Invalid JSON"));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Phone))
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                CommonMessageConstants.PhoneRequired));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.AppName))
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "AppName is required"));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.StoreName))
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "StoreName is required"));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.UserName))
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "UserName is required"));
-        }
-
-        return null;
-    }
-
-    private static IActionResult? ValidateSyncRequest(SyncRequest request)
-    {
-        if (request == null)
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "Invalid JSON"));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Phone))
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "Phone is required"));
-        }
-
-        if (request.SyncTime == default)
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "SyncTime is required"));
-        }
-
-        if (request.SyncData.ValueKind == JsonValueKind.Undefined || request.SyncData.ValueKind == JsonValueKind.Null)
-        {
-            return new BadRequestObjectResult(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "SyncData is required"));
-        }
-
-        return null;
-    }
-}
-
-public class StoreInformationRequest
-{
-    public string Phone { get; set; } = string.Empty;
-    public string AppName { get; set; } = string.Empty;
-    public string StoreName { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
-}
-
-public class StoreInformationResponse
-{
-    public int Id { get; set; }
-    public int AppCredentialId { get; set; }
-    public string StoreName { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
 }

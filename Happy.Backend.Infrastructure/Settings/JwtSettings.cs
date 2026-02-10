@@ -1,4 +1,4 @@
-namespace Happy.Backend.Api.Models;
+namespace Happy.Backend.Infrastructure.Settings;
 
 public class JwtSettings
 {

@@ -1,5 +1,7 @@
+using System.ComponentModel.DataAnnotations;
 using Happy.Backend.Api.Constants;
 using Happy.Backend.Api.Models;
+using Happy.Backend.Api.Models.Responses;
 using Happy.Backend.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,32 +19,15 @@ public class AppCredentialController : ControllerBase
     }
 
     [HttpGet("exists")]
-    public async Task<IActionResult> Exists([FromQuery] string phone, [FromQuery] string appName)
+    public async Task<IActionResult> Exists(
+        [FromQuery][Required(ErrorMessage = "Phone is required")] string phone,
+        [FromQuery][Required(ErrorMessage = "AppName is required")] string appName)
     {
-        if (string.IsNullOrWhiteSpace(phone))
-        {
-            return BadRequest(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                CommonMessageConstants.PhoneRequired));
-        }
-
-        if (string.IsNullOrWhiteSpace(appName))
-        {
-            return BadRequest(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                "AppName is required"));
-        }
-
         var exists = await _appCredentialRepository.ExistsByPhoneAndAppNameAsync(
             phone.Trim(),
             appName.Trim());
 
-        var response = new AppCredentialExistsResponse
-        {
-            Exists = exists
-        };
+        var response = new AppCredentialExistsResponse { Exists = exists };
 
         return Ok(new CommonResponseModel<AppCredentialExistsResponse>(
             CommonResponseConstants.StatusSuccess,
@@ -51,17 +36,13 @@ public class AppCredentialController : ControllerBase
     }
 
     [HttpGet("secret")]
-    public async Task<IActionResult> GetSecret([FromQuery] string phone)
+    public async Task<IActionResult> GetSecret(
+        [FromQuery][Required(ErrorMessage = "Phone is required")] string phone,
+        [FromQuery][Required(ErrorMessage = "AppName is required")] string appName)
     {
-        if (string.IsNullOrWhiteSpace(phone))
-        {
-            return BadRequest(new CommonResponseModel<object>(
-                CommonResponseConstants.StatusBadRequest,
-                null,
-                CommonMessageConstants.PhoneRequired));
-        }
-
-        var appCredential = await _appCredentialRepository.GetLatestByPhoneAsync(phone.Trim());
+        var appCredential = await _appCredentialRepository.GetByPhoneAndAppNameAsync(
+            phone.Trim(),
+            appName.Trim());
 
         if (appCredential == null)
         {
@@ -71,24 +52,11 @@ public class AppCredentialController : ControllerBase
                 "AppCredential not found"));
         }
 
-        var response = new AppCredentialSecretResponse
-        {
-            AppSecret = appCredential.AppSecret
-        };
+        var response = new AppCredentialSecretResponse { AppSecret = appCredential.AppSecret };
 
         return Ok(new CommonResponseModel<AppCredentialSecretResponse>(
             CommonResponseConstants.StatusSuccess,
             response,
             "ok"));
     }
-}
-
-public class AppCredentialExistsResponse
-{
-    public bool Exists { get; set; }
-}
-
-public class AppCredentialSecretResponse
-{
-    public string AppSecret { get; set; } = string.Empty;
 }

@@ -1,6 +1,6 @@
 using Happy.Backend.Api.Constants;
 using Happy.Backend.Api.Models;
-using Happy.Backend.Api.Services;
+using Happy.Backend.Application.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 

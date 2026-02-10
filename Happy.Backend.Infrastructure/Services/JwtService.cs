@@ -1,12 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Happy.Backend.Api.Models;
+using Happy.Backend.Application.Interfaces;
 using Happy.Backend.Domain.Entities;
+using Happy.Backend.Infrastructure.Settings;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Happy.Backend.Api.Services;
+namespace Happy.Backend.Infrastructure.Services;
 
 public class JwtService : IJwtService
 {
@@ -17,10 +18,11 @@ public class JwtService : IJwtService
         _settings = settings.Value;
     }
 
-    public string GenerateToken(AppCredential app)
+    public JwtTokenResult GenerateToken(AppCredential app)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.SecretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+        var expiresAt = DateTime.UtcNow.AddMinutes(_settings.ExpirationMinutes);
 
         var claims = new[]
         {
@@ -33,11 +35,15 @@ public class JwtService : IJwtService
             issuer: _settings.Issuer,
             audience: _settings.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_settings.ExpirationMinutes),
+            expires: expiresAt,
             signingCredentials: credentials
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return new JwtTokenResult
+        {
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
+            ExpiresAt = expiresAt
+        };
     }
 
     public TokenClaims? ValidateToken(string token)

@@ -1,6 +1,7 @@
 using Happy.Backend.Application.Interfaces;
 using Happy.Backend.Domain.Entities;
 using Happy.Backend.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Happy.Backend.Infrastructure.Repositories;
 
@@ -25,5 +26,15 @@ public class StoreFarmerInformationRepository : IStoreFarmerInformationRepositor
         _db.FarmerInformation.Add(entity);
         await _db.SaveChangesAsync();
         return entity;
+    }
+
+    public async Task<StoreInformation?> GetStoreByAppCredentialIdAsync(int appCredentialId)
+    {
+        return await _db.StoreInformation.FirstOrDefaultAsync(x => x.AppCredentialId == appCredentialId);
+    }
+
+    public async Task<FarmerInformation?> GetFarmerByAppCredentialIdAsync(int appCredentialId)
+    {
+        return await _db.FarmerInformation.FirstOrDefaultAsync(x => x.AppCredentialId == appCredentialId);
     }
 }

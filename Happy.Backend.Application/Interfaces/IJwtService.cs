@@ -1,11 +1,17 @@
 using Happy.Backend.Domain.Entities;
 
-namespace Happy.Backend.Api.Services;
+namespace Happy.Backend.Application.Interfaces;
 
 public interface IJwtService
 {
-    string GenerateToken(AppCredential app);
+    JwtTokenResult GenerateToken(AppCredential app);
     TokenClaims? ValidateToken(string token);
+}
+
+public class JwtTokenResult
+{
+    public string Token { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
 }
 
 public class TokenClaims

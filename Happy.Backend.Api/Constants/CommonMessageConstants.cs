@@ -11,4 +11,6 @@ public static class CommonMessageConstants
     public const string AppSecretRequired = "AppSecret is required";
     public const string PhoneRequired = "Phone is required";
     public const string InvalidAppCredentials = "Invalid app credentials";
+
+    public const string AppNameRequired = "AppName is required";
 }
