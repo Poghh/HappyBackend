@@ -20,10 +20,22 @@ public class SyncRawRepository : ISyncRawRepository
         return entity;
     }
 
+    public async Task UpdateStoreAsync(SyncRawStore entity)
+    {
+        _db.SyncRawStores.Update(entity);
+        await _db.SaveChangesAsync();
+    }
+
     public async Task<SyncRawFarmer> AddFarmerAsync(SyncRawFarmer entity)
     {
         _db.SyncRawFarmers.Add(entity);
         await _db.SaveChangesAsync();
         return entity;
+    }
+
+    public async Task UpdateFarmerAsync(SyncRawFarmer entity)
+    {
+        _db.SyncRawFarmers.Update(entity);
+        await _db.SaveChangesAsync();
     }
 }

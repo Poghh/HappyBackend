@@ -1,11 +1,7 @@
+using Happy.Backend.Api;
 using Happy.Backend.Api.Constants;
 using Happy.Backend.Api.Models;
-using Happy.Backend.Application.Interfaces;
-using Happy.Backend.Application.Services;
 using Happy.Backend.Infrastructure.Data;
-using Happy.Backend.Infrastructure.Repositories;
-using Happy.Backend.Infrastructure.Services;
-using Happy.Backend.Infrastructure.Settings;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
@@ -47,27 +43,11 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Infrastructure Settings
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
-builder.Services.Configure<MinioSettings>(builder.Configuration.GetSection("Minio"));
-
-// Infrastructure Services
-builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddSingleton<IObjectStorageService, MinioStorageService>();
-
-// DbContext PostgreSQL
-builder.Services.AddDbContext<HappyDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
-
-// Repositories
-builder.Services.AddScoped<ISyncRawRepository, SyncRawRepository>();
-builder.Services.AddScoped<IAppCredentialRepository, AppCredentialRepository>();
-builder.Services.AddScoped<IStoreFarmerInformationRepository, StoreFarmerInformationRepository>();
-
-// Application Services
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IFarmerService, FarmerService>();
-builder.Services.AddScoped<IStoreService, StoreService>();
+// DI Registration
+builder.Services
+    .AddInfrastructure(builder.Configuration)
+    .AddRepositories()
+    .AddApplicationServices();
 
 var app = builder.Build();
 
