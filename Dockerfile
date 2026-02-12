@@ -20,10 +20,7 @@ RUN dotnet publish Happy.Backend.Api/Happy.Backend.Api.csproj -c Release -o /app
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-ENV Minio__Endpoint=http://minio:9000 \
-    Minio__AccessKey=minioadmin \
-    Minio__SecretKey=minioadmin \
-    Minio__Bucket=happy-farmers
+ENV ASPNETCORE_ENVIRONMENT=Production
 
 EXPOSE 8080
 

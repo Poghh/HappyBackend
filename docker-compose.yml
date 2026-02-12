@@ -6,27 +6,29 @@ services:
     env_file:
       - .env
     ports:
-      - "5205:8080"
+      - "${API_PORT:-8080}:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__Default=Host=db;Port=5432;Database=happy_db;Username=postgres;Password=admin
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Default=Host=db;Port=5432;Database=${POSTGRES_DB:-happy_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}
+      - JwtSettings__SecretKey=${JWT_SECRET_KEY}
       - Minio__Endpoint=http://minio:9000
-      - Minio__AccessKey=minioadmin
-      - Minio__SecretKey=minioadmin
-      - Minio__Bucket=happy-storage
+      - Minio__AccessKey=${MINIO_ACCESS_KEY:-minioadmin}
+      - Minio__SecretKey=${MINIO_SECRET_KEY:-minioadmin}
+      - Minio__Bucket=${MINIO_BUCKET:-happy-storage}
       - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
 
   db:
     image: postgres:17
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     environment:
-      - POSTGRES_DB=happy_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=${POSTGRES_DB:-happy_db}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -34,18 +36,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   minio:
     image: minio/minio:latest
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
+    restart: unless-stopped
 
   minio-init:
     image: minio/mc:latest
@@ -53,8 +57,8 @@ services:
       - minio
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set local http://minio:9000 minioadmin minioadmin;
-      /usr/bin/mc mb --ignore-existing local/happy-storage;
+      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+      /usr/bin/mc mb --ignore-existing local/${MINIO_BUCKET:-happy-storage};
       exit 0;"
 
 volumes:

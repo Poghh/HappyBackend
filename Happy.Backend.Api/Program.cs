@@ -43,6 +43,17 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // DI Registration
 builder.Services
     .AddInfrastructure(builder.Configuration)
@@ -59,7 +70,11 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Middleware
+app.UsePathBase("/api");
+app.UseCors();
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 if (app.Environment.IsDevelopment())
 {
